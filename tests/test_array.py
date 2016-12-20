@@ -1,4 +1,4 @@
-from schemarize.models import Array, String
+from coreschema import Array, String
 
 
 def test_array_type():

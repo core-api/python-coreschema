@@ -1,4 +1,4 @@
-from schemarize.models import Object, Array, String, Anything, Boolean
+from coreschema import Object, Array, String, Anything, Boolean
 
 
 media_type_pattern = '^[^/]+/[^/]'
@@ -25,6 +25,7 @@ ExternalDocumentation = Object(
     required=['url'],
     additional_properties=False
 )
+
 
 Tag = Object(
     properties={
@@ -189,14 +190,14 @@ Swagger = Object(
 )
 
 
-swagger = Swagger({
-    'info': {
-        'title': doc.title,
-        'description': doc.description
-    },
-    'paths': paths
-})
-swagger.value
+# swagger = Swagger.parse({
+#     'info': {
+#         'title': doc.title,
+#         'description': doc.description
+#     },
+#     'paths': paths
+# })
+# swagger.value
 
 
 swagger = Swagger.parse(input_content)
@@ -208,9 +209,9 @@ version = swagger.get(['info', 'version'])
 default_schemes = swagger.get('schemes', default=[])
 default_consumes = swagger.get('consumes', default=None)
 default_produces = swagger.get('produces', default=None)
-for path, path_item in swagger.walk_items(PathItem):
+for path, path_item in swagger.walk_items('PathItem'):
     default_properties = path_item.get('properties', default=[])
-    for method, operation in path_item.walk_items(Operation):
+    for method, operation in path_item.walk_items('Operation'):
         operation_id = operation.get('operationId')
         tags = operation.get('tags', default=[])
         schemes = operation.get(['schemes'], default=default_schemes)

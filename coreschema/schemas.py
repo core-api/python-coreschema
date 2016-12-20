@@ -1,5 +1,5 @@
 from collections import namedtuple
-from schemarize.formats import validate_format
+from coreschema.formats import validate_format
 import re
 
 
@@ -27,7 +27,7 @@ def is_numeric_instance(value, types):
     return isinstance(value, types)
 
 
-class Validator(object):
+class Schema(object):
     errors = {}
 
     def make_error(self, code):
@@ -48,7 +48,7 @@ class Validator(object):
 # TODO: override errors
 
 
-class Object(Validator):
+class Object(Schema):
     errors = {
         'type': 'Must be an object.',
         'invalid_key': 'Object keys must be strings.',
@@ -140,7 +140,7 @@ class Object(Validator):
         return errors
 
 
-class Array(Validator):
+class Array(Schema):
     errors = {
         'type': 'Must be an array.',
         'empty': 'Must not be empty.',
@@ -184,7 +184,7 @@ class Array(Validator):
         return errors
 
 
-class Number(Validator):
+class Number(Schema):
     number_type = (float, int)
     errors = {
         'type': 'Must be a number.',
@@ -243,7 +243,7 @@ class Integer(Number):
     }
 
 
-class String(Validator):
+class String(Schema):
     errors = {
         'type': 'Must be a string.',
         'blank': 'Must not be blank.',
@@ -291,7 +291,7 @@ class String(Validator):
         return errors
 
 
-class Boolean(Validator):
+class Boolean(Schema):
     errors = {
         'type': 'Must be a boolean.'
     }
@@ -303,7 +303,7 @@ class Boolean(Validator):
         return []
 
 
-class Anything(Validator):
+class Anything(Schema):
     errors = {
         'type': 'Must be a valid primitive type.'
     }
@@ -315,9 +315,9 @@ class Anything(Validator):
 
         errors = []
         if isinstance(value, list):
-            validator = Array()
-            errors += validator.validate(value)
+            schema = Array()
+            errors += schema.validate(value)
         elif isinstance(value, dict):
-            validator = Object()
-            errors += validator.validate(value)
+            schema = Object()
+            errors += schema.validate(value)
         return errors

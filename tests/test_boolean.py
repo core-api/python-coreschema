@@ -1,4 +1,4 @@
-from schemarize.models import Boolean
+from coreschema import Boolean
 
 
 def test_boolean_type():

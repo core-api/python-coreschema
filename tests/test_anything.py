@@ -1,4 +1,4 @@
-from schemarize.models import Anything
+from coreschema import Anything
 
 
 def test_anything_type():

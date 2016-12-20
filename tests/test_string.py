@@ -1,4 +1,4 @@
-from schemarize.models import String
+from coreschema import String
 
 
 def test_string_type():

@@ -1,4 +1,4 @@
-from schemarize.models import Number, Integer
+from coreschema import Number, Integer
 
 
 def test_number_type():

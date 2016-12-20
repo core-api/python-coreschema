@@ -1,1 +1,1 @@
-py.test tests/ --cov=schemarize --cov-report html
+py.test tests/ --cov=coreschema --cov-report html

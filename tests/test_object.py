@@ -1,4 +1,4 @@
-from schemarize.models import Object, String
+from coreschema import Object, String
 
 
 def test_object_type():
