@@ -11,7 +11,8 @@ def test_number_type():
 def test_integer_type():
     schema = Integer()
     assert schema.validate(1) == []
-    assert schema.validate(1.0) == [('Must be an integer.', [])]
+    assert schema.validate(1.0) == []
+    assert schema.validate(1.5) == [('Must be an integer.', [])]
     assert schema.validate(True) == [('Must be an integer.', [])]
 
 

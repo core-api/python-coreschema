@@ -9,8 +9,12 @@ def validate_format(value, format):
     function = {
         'email': validate_email,
         'uri': validate_uri
-    }[format]
+    }.get(format, unknown_format)
     return function(value)
+
+
+def unknown_format(value):
+    return value
 
 
 def validate_email(value):

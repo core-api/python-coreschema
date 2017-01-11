@@ -45,9 +45,3 @@ def test_format_uri():
     schema = String(format='uri')
     assert schema.validate('http://example.com') == []
     assert schema.validate('example.com') == [('Must be a valid uri.', [])]
-
-
-def test_enum():
-    schema = String(enum=['abc', 'def'])
-    assert schema.validate('def') == []
-    assert schema.validate('ghi') == [("Must be one of ['abc', 'def'].", [])]

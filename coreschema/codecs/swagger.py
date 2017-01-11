@@ -199,30 +199,30 @@ Swagger = Object(
 # })
 # swagger.value
 
-
-swagger = Swagger.parse(input_content)
-
-title = swagger.get(['info', 'title'])
-description = swagger.get(['info', 'description'], default='')
-version = swagger.get(['info', 'version'])
-
-default_schemes = swagger.get('schemes', default=[])
-default_consumes = swagger.get('consumes', default=None)
-default_produces = swagger.get('produces', default=None)
-for path, path_item in swagger.walk_items('PathItem'):
-    default_properties = path_item.get('properties', default=[])
-    for method, operation in path_item.walk_items('Operation'):
-        operation_id = operation.get('operationId')
-        tags = operation.get('tags', default=[])
-        schemes = operation.get(['schemes'], default=default_schemes)
-        consumes = operation.get(['consumes'], default=default_consumes)
-        produces = operation.get(['produces'], default=default_produces)
-        properties = operation.get(['properties'], default=default_properties)
-
-
-import os
-import json
-input_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'petstore.json')
-schema = json.loads(open(input_path, 'r').read())
-
-print Swagger.validate(schema)
+#
+# swagger = Swagger.parse(input_content)
+#
+# title = swagger.get(['info', 'title'])
+# description = swagger.get(['info', 'description'], default='')
+# version = swagger.get(['info', 'version'])
+#
+# default_schemes = swagger.get('schemes', default=[])
+# default_consumes = swagger.get('consumes', default=None)
+# default_produces = swagger.get('produces', default=None)
+# for path, path_item in swagger.walk_items('PathItem'):
+#     default_properties = path_item.get('properties', default=[])
+#     for method, operation in path_item.walk_items('Operation'):
+#         operation_id = operation.get('operationId')
+#         tags = operation.get('tags', default=[])
+#         schemes = operation.get(['schemes'], default=default_schemes)
+#         consumes = operation.get(['consumes'], default=default_consumes)
+#         produces = operation.get(['produces'], default=default_produces)
+#         properties = operation.get(['properties'], default=default_properties)
+#
+#
+# import os
+# import json
+# input_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'petstore.json')
+# schema = json.loads(open(input_path, 'r').read())
+#
+# print Swagger.validate(schema)

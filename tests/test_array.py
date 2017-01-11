@@ -1,4 +1,4 @@
-from coreschema import Array, String
+from coreschema import Array, String, Integer
 
 
 def test_array_type():
@@ -13,6 +13,13 @@ def test_array_items():
     assert schema.validate([]) == []
     assert schema.validate(['a', 'b', 'c']) == []
     assert schema.validate(['a', 'b', 123]) == [('Must be a string.', [2])]
+
+
+def test_array_items_as_list():
+    schema = Array(items=[String(), Integer()])
+    assert schema.validate([]) == []
+    assert schema.validate(['a', 123]) == []
+    assert schema.validate(['a', 'b']) == [('Must be an integer.', [1])]
 
 
 def test_array_max_items():
@@ -37,3 +44,14 @@ def test_array_unique_items():
     schema = Array(unique_items=True)
     assert schema.validate([1, 2, 3]) == []
     assert schema.validate([1, 2, 1]) == [('Must not contain duplicate items.', [])]
+
+
+def test_array_additional_items_disallowed():
+    schema = Array(items=[String(), Integer()])
+    assert schema.validate(['a', 123, True]) == []
+
+    schema = Array(items=[String(), Integer()], additional_items=False)
+    assert schema.validate(['a', 123, True]) == [('Must have no more than 2 items.', [])]
+
+    schema = Array(items=[String(), Integer()], additional_items=Integer())
+    assert schema.validate(['a', 123, 'c']) == [('Must be an integer.', [2])]

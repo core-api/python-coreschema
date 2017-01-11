@@ -1,5 +1,6 @@
 from collections import namedtuple
 from coreschema.formats import validate_format
+from coreschema.utils import uniq
 import re
 
 
@@ -16,36 +17,45 @@ def push_index(errors, key):
 text_types = (str, unicode)
 
 
-def is_numeric_instance(value, types):
-    """
-    Python's booleans subclass int, so we need to explicitly disallow them
-    when we're checking for numeric types that include int.
-    Eg. isinstance(value, int) or isinstance(value, (float, int))
-    """
-    if isinstance(value, bool):
-        return False
-    return isinstance(value, types)
+
+# TODO: Internally ordered properties
+# TODO: null keyword, composites
+# TODO: remaining formats
+# TODO: 'long' for python2. 'text_types' in 2 and 3.
+# Rename (core schema?)
+
+# Later...
+# TODO: File
+# TODO: strict, coerce float etc...
+# TODO: decimals
+# TODO: override errors
 
 
 class Schema(object):
     errors = {}
+
+    def __init__(self, title=None, description=None, default=None):
+        self.title = title
+        self.description = description
+        self.default = default
 
     def make_error(self, code):
         error_string = self.errors[code]
         params = self.__dict__
         return Error(error_string.format(**params), [])
 
+    def __or__(self, other):
+        if isinstance(self, Union):
+            self_children = self.children
+        else:
+            self_children = [self]
 
-# TODO: enum, null (as keyword, as type), composites
-# TODO: remaining formats
-# Rename (core schema?)
+        if isinstance(other, Union):
+            other_children = other.children
+        else:
+            other_children = [other]
 
-# TODO: File
-# TODO: strict, coerce float etc...
-
-# TODO: decimals
-# TODO: literal failure with single enum value
-# TODO: override errors
+        return Union(self_children + other_children)
 
 
 class Object(Schema):
@@ -59,7 +69,9 @@ class Object(Schema):
         'invalid_property': 'Invalid property.'
     }
 
-    def __init__(self, properties=None, required=None, max_properties=None, min_properties=None, pattern_properties=None, additional_properties=True):
+    def __init__(self, properties=None, required=None, max_properties=None, min_properties=None, pattern_properties=None, additional_properties=True, **kwargs):
+        super(Object, self).__init__(**kwargs)
+
         if isinstance(additional_properties, bool):
             # Handle `additional_properties` set to a boolean.
             self.additional_properties_schema = Anything()
@@ -69,7 +81,7 @@ class Object(Schema):
             additional_properties = True
 
         self.properties = properties
-        self.required = required
+        self.required = required or []
         self.max_properties = max_properties
         self.min_properties = min_properties
         self.pattern_properties = pattern_properties
@@ -86,7 +98,7 @@ class Object(Schema):
 
         # TODO: dependancies
 
-    def validate(self, value):
+    def validate(self, value, context=None):
         if not isinstance(value, dict):
             return [self.make_error('type')]
 
@@ -115,22 +127,22 @@ class Object(Schema):
             for key, property_item in self.properties.items():
                 if key not in value:
                     continue
-                error_items = property_item.validate(value[key])
+                error_items = property_item.validate(value[key], context)
                 errors += push_index(error_items, key)
 
         # Pattern properties
         if self.pattern_properties is not None:
-            for pattern, schema in self.pattern_properties_regex.items():
-                for key in list(remaining_keys):
+            for key in list(remaining_keys):
+                for pattern, schema in self.pattern_properties_regex.items():
                     if re.search(pattern, key):
-                        error_items = schema.validate(value[key])
+                        error_items = schema.validate(value[key], context)
                         errors += push_index(error_items, key)
-                        remaining_keys.remove(key)
+                        remaining_keys.discard(key)
 
         # Additional properties
         if self.additional_properties:
             for key in remaining_keys:
-                error_items = self.additional_properties_schema.validate(value[key])
+                error_items = self.additional_properties_schema.validate(value[key], context)
                 errors += push_index(error_items, key)
         else:
             for key in remaining_keys:
@@ -149,24 +161,44 @@ class Array(Schema):
         'unique': 'Must not contain duplicate items.'
     }
 
-    def __init__(self, items=None, max_items=None, min_items=None, unique_items=None):
+    def __init__(self, items=None, max_items=None, min_items=None, unique_items=False, additional_items=True, **kwargs):
+        super(Array, self).__init__(**kwargs)
+
         if items is None:
             items = Anything()
 
-        self.items = items  # TODO: schema or list
+        if isinstance(items, list) and additional_items is False:
+            # Setting additional_items==False implies a value for max_items.
+            if max_items is None or max_items > len(items):
+                max_items = len(items)
+
+        self.items = items
         self.max_items = max_items
         self.min_items = min_items
         self.unique_items = unique_items
-        # additional_items (TODO: boolean or schema)
+        self.additional_items = additional_items
 
-    def validate(self, value):
+    def validate(self, value, context=None):
         if not isinstance(value, list):
             return [self.make_error('type')]
 
         errors = []
         if self.items is not None:
+            child_schema = self.items
+            is_list = isinstance(self.items, list)
             for idx, item in enumerate(value):
-                error_items = self.items.validate(item)
+                if is_list:
+                    # Case where `items` is a list of schemas.
+                    if idx < len(self.items):
+                        # Handle each item in the list.
+                        child_schema = self.items[idx]
+                    else:
+                        # Handle any additional items.
+                        if isinstance(self.additional_items, bool):
+                            break
+                        else:
+                            child_schema = self.additional_items
+                error_items = child_schema.validate(item, context)
                 errors += push_index(error_items, idx)
         if self.min_items is not None:
             if len(value) < self.min_items:
@@ -177,15 +209,16 @@ class Array(Schema):
         if self.max_items is not None:
             if len(value) > self.max_items:
                 errors += [self.make_error('max_items')]
-        if self.unique_items is not None:
-            if len(value) != len(set(value)):  # TODO: _utils.uniq
+        if self.unique_items:
+            if not(uniq(value)):
                 errors += [self.make_error('unique')]
 
         return errors
 
 
 class Number(Schema):
-    number_type = (float, int)
+    numeric_types = (float, int, long)
+    integer_only = False
     errors = {
         'type': 'Must be a number.',
         'minimum': 'Must be greater than or equal to {minimum}.',
@@ -195,15 +228,21 @@ class Number(Schema):
         'multiple_of': 'Must be a multiple of {multiple_of}.',
     }
 
-    def __init__(self, minimum=None, maximum=None, exclusive_minimum=False, exclusive_maximum=False, multiple_of=None):
+    def __init__(self, minimum=None, maximum=None, exclusive_minimum=False, exclusive_maximum=False, multiple_of=None, **kwargs):
+        super(Number, self).__init__(**kwargs)
         self.minimum = minimum
         self.maximum = maximum
         self.exclusive_minimum = exclusive_minimum
         self.exclusive_maximum = exclusive_maximum
         self.multiple_of = multiple_of
 
-    def validate(self, value):
-        if not is_numeric_instance(value, self.number_type):
+    def validate(self, value, context=None):
+        if isinstance(value, bool):
+            # In Python `bool` subclasses `int`, so handle that case explicitly.
+            return [self.make_error('type')]
+        if not isinstance(value, self.numeric_types):
+            return [self.make_error('type')]
+        if self.integer_only and isinstance(value, float) and not value.is_integer():
             return [self.make_error('type')]
 
         errors = []
@@ -232,7 +271,6 @@ class Number(Schema):
 
 
 class Integer(Number):
-    number_type = int
     errors = {
         'type': 'Must be an integer.',
         'minimum': 'Must be greater than or equal to {minimum}.',
@@ -241,6 +279,7 @@ class Integer(Number):
         'exclusive_maximum': 'Must be less than {maximum}.',
         'multiple_of': 'Must be a multiple of {multiple_of}.',
     }
+    integer_only = True
 
 
 class String(Schema):
@@ -251,21 +290,20 @@ class String(Schema):
         'min_length': 'Must have at least {min_length} characters.',
         'pattern': 'Must match the pattern /{pattern}/.',
         'format': 'Must be a valid {format}.',
-        'enum': 'Must be one of {enum}.',
     }
 
-    def __init__(self, max_length=None, min_length=None, pattern=None, format=None, enum=None):
+    def __init__(self, max_length=None, min_length=None, pattern=None, format=None, **kwargs):
+        super(String, self).__init__(**kwargs)
         self.max_length = max_length
         self.min_length = min_length
         self.pattern = pattern
         self.format = format
-        self.enum = enum
 
         self.pattern_regex = None
         if self.pattern is not None:
             self.pattern_regex = re.compile(pattern)
 
-    def validate(self, value):
+    def validate(self, value, context=None):
         if not isinstance(value, text_types):
             return [self.make_error('type')]
 
@@ -285,9 +323,6 @@ class String(Schema):
         if self.format is not None:
             if not validate_format(value, self.format):
                 errors += [self.make_error('format')]
-        if self.enum is not None:
-            if value not in self.enum:
-                errors += [self.make_error('enum')]
         return errors
 
 
@@ -296,10 +331,41 @@ class Boolean(Schema):
         'type': 'Must be a boolean.'
     }
 
-    def validate(self, value):
+    def validate(self, value, context=None):
         if not isinstance(value, bool):
             return [self.make_error('type')]
+        return []
 
+
+class Null(Schema):
+    errors = {
+        'type': 'Must be null.'
+    }
+
+    def validate(self, value, context=None):
+        if value is not None:
+            return [self.make_error('type')]
+        return []
+
+
+class Enum(Schema):
+    errors = {
+        'enum': 'Must be one of {enum}.',
+        'exact': 'Must be {exact}.',
+    }
+
+    def __init__(self, enum, **kwargs):
+        super(Enum, self).__init__(**kwargs)
+
+        self.enum = enum
+        if len(enum) == 1:
+            self.exact = repr(enum[0])
+
+    def validate(self, value, context=None):
+        if value not in self.enum:
+            if len(self.enum) == 1:
+                return [self.make_error('exact')]
+            return [self.make_error('enum')]
         return []
 
 
@@ -309,15 +375,59 @@ class Anything(Schema):
     }
     types = text_types + (dict, list, int, float, bool, type(None))
 
-    def validate(self, value):
+    def validate(self, value, context=None):
         if not isinstance(value, self.types):
             return [self.make_error('type')]
 
         errors = []
         if isinstance(value, list):
             schema = Array()
-            errors += schema.validate(value)
+            errors += schema.validate(value, context)
         elif isinstance(value, dict):
             schema = Object()
-            errors += schema.validate(value)
+            errors += schema.validate(value, context)
         return errors
+
+
+class Union(Schema):
+    errors = {
+        'match': 'Must match one of the options.'
+    }
+
+    def __init__(self, children, **kwargs):
+        super(Union, self).__init__(**kwargs)
+
+        self.children = children
+
+    def validate(self, value, context=None):
+        for child in self.children:
+            if child.validate(value, context) == []:
+                return []
+        return [self.make_error('match')]
+
+
+class Ref(Schema):
+    def __init__(self, ref_name):
+        self.ref_name = ref_name
+
+    def dereference(self, context):
+        assert isinstance(context, dict)
+        assert 'refs' in context
+        assert self.ref_name in context['refs']
+        return context['refs'][self.ref_name]
+
+    def validate(self, value, context=None):
+        schema = self.dereference(context)
+        return schema.validate(value, context)
+
+
+class RefSpace(Schema):
+    def __init__(self, refs, root):
+        assert root in refs
+        self.refs = refs
+        self.root = root
+        self.root_validator = refs[root]
+
+    def validate(self, value):
+        context = {'refs': self.refs}
+        return self.root_validator.validate(value, context)
