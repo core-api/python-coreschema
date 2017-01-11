@@ -1,5 +1,5 @@
 from coreschema import Object, Array, String, Integer, Number, Boolean, Enum
-from coreschema.forms import determine_html_template, get_attrs, get_textarea_value
+from coreschema.encodings.html import determine_html_template, get_attrs, get_textarea_value
 import jinja2
 
 from jinja2 import Environment, PackageLoader

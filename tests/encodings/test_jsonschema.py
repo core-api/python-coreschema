@@ -1,4 +1,4 @@
-from coreschema.codecs.jsonschema import jsonschema, load_jsonschema
+from coreschema.encodings.jsonschema import jsonschema, load_jsonschema
 import json
 import os
 
