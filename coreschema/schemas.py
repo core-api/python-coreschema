@@ -19,16 +19,15 @@ text_types = (str, unicode)
 
 
 # TODO: Internally ordered properties
-# TODO: null keyword, composites
+# TODO: null keyword / Nullable
 # TODO: remaining formats
-# TODO: 'long' for python2. 'text_types' in 2 and 3.
-# Rename (core schema?)
+# TODO: dependancies
+# TODO: remote ref
 
-# Later...
-# TODO: File
-# TODO: strict, coerce float etc...
-# TODO: decimals
-# TODO: override errors
+# LATER: File
+# LATER: strict, coerce float etc...
+# LATER: decimals
+# LATER: override errors
 
 
 class Schema(object):
