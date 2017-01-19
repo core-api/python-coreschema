@@ -7,8 +7,8 @@ LOCAL_DIR = os.path.dirname(__file__)
 TESTS = [
     'additionalItems.json',
     'additionalProperties.json',
-    # 'allOf.json',
-    # 'anyOf.json',
+    'allOf.json',
+    'anyOf.json',
     'default.json',
     # 'definitions.json',  # requires remote ref
     # 'dependancies.json',

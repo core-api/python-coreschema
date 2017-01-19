@@ -57,6 +57,22 @@ class Schema(object):
 
         return Union(self_children + other_children)
 
+    def __and__(self, other):
+        if isinstance(self, Intersection):
+            self_children = self.children
+        else:
+            self_children = [self]
+
+        if isinstance(other, Intersection):
+            other_children = other.children
+        else:
+            other_children = [other]
+
+        return Intersection(self_children + other_children)
+
+    def __xor__(self, other):
+        return ExclusiveUnion([self, other])
+
 
 class Object(Schema):
     errors = {
@@ -389,6 +405,8 @@ class Anything(Schema):
         return errors
 
 
+# Composites
+
 class Union(Schema):
     errors = {
         'match': 'Must match one of the options.'
@@ -405,6 +423,42 @@ class Union(Schema):
                 return []
         return [self.make_error('match')]
 
+
+class Intersection(Schema):
+    def __init__(self, children, **kwargs):
+        super(Intersection, self).__init__(**kwargs)
+        self.children = children
+
+    def validate(self, value, context=None):
+        errors = []
+        for child in self.children:
+            errors.extend(child.validate(value, context))
+        return errors
+
+
+class ExclusiveUnion(Schema):
+    errors = {
+        'match': 'Must match one of the options.',
+        'match_only_one': 'Must match only one of the options.'
+    }
+
+    def __init__(self, children, **kwargs):
+        super(ExclusiveUnion, self).__init__(**kwargs)
+
+        self.children = children
+
+    def validate(self, value, context=None):
+        matches = 0
+        for child in self.children:
+            if child.validate(value, context) == []:
+                matches += 1
+        if not matches:
+            return [self.make_error('match')]
+        elif matches > 1:
+            return [self.make_error('match_only_one')]
+        return []
+
+# References
 
 class Ref(Schema):
     def __init__(self, ref_name):

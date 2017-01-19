@@ -116,7 +116,11 @@ def camelcase_to_snakecase(name):
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
 
-def load_jsonschema(data):
+def get_typed_schemas(data):
+    """
+    Return a list of schemas for any primitive type restrictions.
+    """
+    has_type = False
     type_kwargs = {type_name: {} for type_name in TYPE_NAMES}
     for keyword, value in data.items():
         # Load any nested schemas
@@ -134,10 +138,12 @@ def load_jsonschema(data):
             value = {key: load_jsonschema(item) for key, item in value.items()}
 
         for type_name in KEYWORD_TO_TYPE.get(keyword, []):
+            has_type = True
             argument_name = camelcase_to_snakecase(keyword)
             type_kwargs[type_name][argument_name] = value
 
     if 'type' in data:
+        has_type = True
         valid_types = data.get('type')
         if isinstance(valid_types, text_types):
             # A string 'type' value is treated as a list with a single element.
@@ -150,13 +156,44 @@ def load_jsonschema(data):
         type_kwargs.pop('integer')
 
     schemas = []
-    for type_name, kwargs in type_kwargs.items():
-        cls = CLS_MAP[type_name]
-        schemas.append(cls(**kwargs))
+    if has_type:
+        for type_name, kwargs in type_kwargs.items():
+            cls = CLS_MAP[type_name]
+            schemas.append(cls(**kwargs))
 
-    if len(schemas) == 1:
+    return schemas
+
+
+def get_composite_schemas(data):
+    schemas = []
+    if 'anyOf' in data:
+        value = data['anyOf']
+        schema = coreschema.Union([
+            load_jsonschema(item) for item in value
+        ])
+        schemas.append(schema)
+    if 'allOf' in data:
+        value = data['allOf']
+        schema = coreschema.Intersection([
+            load_jsonschema(item) for item in value
+        ])
+        schemas.append(schema)
+    return schemas
+
+
+
+def load_jsonschema(data):
+    schemas = get_typed_schemas(data)
+    if len(schemas) > 1:
+        schemas = [coreschema.Union(schemas)]
+    schemas += get_composite_schemas(data)
+
+    if not schemas:
+        schema = coreschema.Anything()
+    elif len(schemas) == 1:
         schema = schemas[0]
-    schema = coreschema.Union(schemas)
+    else:
+        schema = coreschema.Intersection(schemas)
 
     if 'enum' in data:
         # Restrict enum values by any existing type constraints,
