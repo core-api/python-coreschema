@@ -73,6 +73,9 @@ class Schema(object):
     def __xor__(self, other):
         return ExclusiveUnion([self, other])
 
+    def __invert__(self):
+        return Not(self)
+
 
 class Object(Schema):
     errors = {
@@ -457,6 +460,23 @@ class ExclusiveUnion(Schema):
         elif matches > 1:
             return [self.make_error('match_only_one')]
         return []
+
+
+class Not(Schema):
+    errors = {
+        'must_not_match': 'Must not match the option.'
+    }
+
+    def __init__(self, child, **kwargs):
+        super(Not, self).__init__(**kwargs)
+        self.child = child
+
+    def validate(self, value, context=None):
+        errors = []
+        if self.child.validate(value, context):
+            return []
+        return [self.make_error('must_not_match')]
+
 
 # References
 

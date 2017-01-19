@@ -178,6 +178,16 @@ def get_composite_schemas(data):
             load_jsonschema(item) for item in value
         ])
         schemas.append(schema)
+    if 'oneOf' in data:
+        value = data['oneOf']
+        schema = coreschema.ExclusiveUnion([
+            load_jsonschema(item) for item in value
+        ])
+        schemas.append(schema)
+    if 'not' in data:
+        value = data['not']
+        schema = coreschema.Not(load_jsonschema(value))
+        schemas.append(schema)
     return schemas
 
 
