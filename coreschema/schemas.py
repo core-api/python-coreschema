@@ -17,13 +17,12 @@ def push_index(errors, key):
 text_types = (str, unicode)
 
 
-
 # TODO: Internally ordered properties
 # TODO: null keyword / Nullable
-# TODO: remaining formats
 # TODO: dependancies
 # TODO: remote ref
-
+# TODO: remaining formats
+# LATER: Enum display values
 # LATER: File
 # LATER: strict, coerce float etc...
 # LATER: decimals
