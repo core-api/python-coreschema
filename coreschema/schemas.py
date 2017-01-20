@@ -17,7 +17,7 @@ def push_index(errors, key):
 text_types = (str, unicode)
 
 
-# TODO: Internally ordered properties
+# TODO: Properties as OrderedDict if from list of tuples.
 # TODO: null keyword / Nullable
 # TODO: dependancies
 # TODO: remote ref
@@ -112,8 +112,6 @@ class Object(Schema):
                 for key, value
                 in pattern_properties.items()
             }
-
-        # TODO: dependancies
 
     def validate(self, value, context=None):
         if not isinstance(value, dict):

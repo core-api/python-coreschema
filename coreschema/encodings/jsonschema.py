@@ -73,29 +73,29 @@ jsonschema = coreschema.RefSpace({
 
 
 KEYWORD_TO_TYPE = {
-    'minimum': ['number', 'integer'],
-    'maximum': ['number', 'integer'],
-    'exclusiveMinimum': ['number', 'integer'],
-    'exclusiveMaximum': ['number', 'integer'],
-    'multipleOf': ['number', 'integer'],
+    'minimum': 'number',
+    'maximum': 'number',
+    'exclusiveMinimum': 'number',
+    'exclusiveMaximum': 'number',
+    'multipleOf': 'number',
     #
-    'minLength': ['string'],
-    'maxLength': ['string'],
-    'pattern': ['string'],
-    'format': ['string'],
+    'minLength': 'string',
+    'maxLength': 'string',
+    'pattern': 'string',
+    'format': 'string',
     #
-    'items': ['array'],
-    'maxItems': ['array'],
-    'minItems': ['array'],
-    'uniqueItems': ['array'],
-    'additionalItems': ['array'],
+    'items': 'array',
+    'maxItems': 'array',
+    'minItems': 'array',
+    'uniqueItems': 'array',
+    'additionalItems': 'array',
     #
-    'properties': ['object'],
-    'maxProperties': ['object'],
-    'minProperties': ['object'],
-    'additionalProperties': ['object'],
-    'patternProperties': ['object'],
-    'required': ['object'],
+    'properties': 'object',
+    'maxProperties': 'object',
+    'minProperties': 'object',
+    'additionalProperties': 'object',
+    'patternProperties': 'object',
+    'required': 'object',
 }
 TYPE_NAMES = [
     'array', 'boolean', 'integer', 'null', 'number', 'object', 'string'
@@ -123,6 +123,9 @@ def get_typed_schemas(data):
     has_type = False
     type_kwargs = {type_name: {} for type_name in TYPE_NAMES}
     for keyword, value in data.items():
+        if keyword not in KEYWORD_TO_TYPE:
+            continue
+
         # Load any nested schemas
         if keyword == 'items' and isinstance(value, dict):
             value = load_jsonschema(value)
@@ -137,23 +140,20 @@ def get_typed_schemas(data):
         elif keyword == 'patternProperties' and isinstance(value, dict):
             value = {key: load_jsonschema(item) for key, item in value.items()}
 
-        for type_name in KEYWORD_TO_TYPE.get(keyword, []):
-            has_type = True
-            argument_name = camelcase_to_snakecase(keyword)
-            type_kwargs[type_name][argument_name] = value
+        type_name = KEYWORD_TO_TYPE[keyword]
+        has_type = True
+        argument_name = camelcase_to_snakecase(keyword)
+        type_kwargs[type_name][argument_name] = value
+
+    type_kwargs['integer'] = type_kwargs['number']
 
     if 'type' in data:
         has_type = True
-        valid_types = data.get('type')
-        if isinstance(valid_types, text_types):
-            # A string 'type' value is treated as a list with a single element.
-            valid_types = [valid_types]
+        types = data.get('type')
+        types = types if isinstance(types, list) else [types]
         for type_name in list(type_kwargs.keys()):
-            if type_name not in valid_types:
+            if type_name not in types:
                 type_kwargs.pop(type_name)
-
-    if 'integer' in type_kwargs and 'number' in type_kwargs:
-        type_kwargs.pop('integer')
 
     schemas = []
     if has_type:
