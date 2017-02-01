@@ -1,8 +1,23 @@
-from coreschema import Object, Array, Number, Integer, String, Boolean, Enum
+from coreschema import Object, Array, String, Integer, Number, Boolean, Enum
+import jinja2
+
+
+env = jinja2.Environment(loader=jinja2.PackageLoader('coreschema', 'templates'))
 
 
 # TODO: required
-# TODO: initial values
+# TODO: initial values, errors, input control
+
+
+def render_to_form(schema):
+    template = env.get_template('form.html')
+    return template.render({
+        'parent': schema,
+        'determine_html_template': determine_html_template,
+        'get_textarea_value': get_textarea_value,
+        'get_attrs': get_attrs
+    })
+
 
 def determine_html_template(schema):
     if isinstance(schema, Array):
