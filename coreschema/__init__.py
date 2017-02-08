@@ -6,7 +6,7 @@ from coreschema.schemas import (
 from coreschema.encodings.html import render_to_form
 
 
-__version__ = '0.0.1'
+__version__ = '0.0.2'
 
 __all__ = [
     Object, Array, Integer, Number, String, Boolean, Null,
