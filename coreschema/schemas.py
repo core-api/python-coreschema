@@ -72,6 +72,12 @@ class Schema(object):
     def __invert__(self):
         return Not(self)
 
+    def __eq__(self, other):
+        return (
+            self.__class__ == other.__class__ and
+            self.__dict__ == other.__dict__
+        )
+
 
 class Object(Schema):
     errors = {
