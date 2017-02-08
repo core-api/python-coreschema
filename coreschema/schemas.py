@@ -1,5 +1,5 @@
 from collections import namedtuple
-from coreschema.compat import text_types
+from coreschema.compat import text_types, numeric_types
 from coreschema.formats import validate_format
 from coreschema.utils import uniq
 import re
@@ -230,7 +230,6 @@ class Array(Schema):
 
 
 class Number(Schema):
-    numeric_types = (float, int, long)
     integer_only = False
     errors = {
         'type': 'Must be a number.',
@@ -253,7 +252,7 @@ class Number(Schema):
         if isinstance(value, bool):
             # In Python `bool` subclasses `int`, so handle that case explicitly.
             return [self.make_error('type')]
-        if not isinstance(value, self.numeric_types):
+        if not isinstance(value, numeric_types):
             return [self.make_error('type')]
         if self.integer_only and isinstance(value, float) and not value.is_integer():
             return [self.make_error('type')]
