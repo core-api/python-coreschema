@@ -1,4 +1,5 @@
 from collections import namedtuple
+from coreschema.compat import text_types
 from coreschema.formats import validate_format
 from coreschema.utils import uniq
 import re
@@ -12,9 +13,6 @@ def push_index(errors, key):
         Error(error.text, [key] + error.index)
         for error in errors
     ]
-
-
-text_types = (str, unicode)
 
 
 # TODO: Properties as OrderedDict if from list of tuples.
