@@ -37,7 +37,7 @@ TESTS = [
 def test_jsonschema():
     # Ensure that the JSON Schema metaschema validates.
     path = os.path.join(LOCAL_DIR, 'schema.json')
-    data = json.load(open(path, 'rb'))
+    data = json.load(open(path, 'r'))
 
     assert jsonschema.validate(data) == []
 
@@ -51,7 +51,7 @@ def test_full_suite():
             and filename in TESTS
     ]
     for filename in filenames:
-        test_suites = json.load(open(filename, 'rd'))
+        test_suites = json.load(open(filename, 'r'))
         for test_suite in test_suites:
             assert jsonschema.validate(test_suite['schema']) == []
             schema = load_jsonschema(test_suite['schema'])
