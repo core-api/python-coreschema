@@ -1,8 +1,6 @@
+from coreschema.compat import text_types
 import coreschema
 import re
-
-
-text_types = (str, unicode)
 
 
 jsonschema = coreschema.RefSpace({
