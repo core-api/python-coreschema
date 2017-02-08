@@ -30,7 +30,7 @@ def push_index(errors, key):
 class Schema(object):
     errors = {}
 
-    def __init__(self, title=None, description=None, default=None):
+    def __init__(self, title='', description='', default=None):
         self.title = title
         self.description = description
         self.default = default
